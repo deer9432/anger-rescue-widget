@@ -1,289 +1,180 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>愤怒管理工具</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#3b82f6',
-                        secondary: '#10b981',
-                        accent: '#f59e0b',
-                        neutral: '#64748b',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    </script>
-    
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .content-auto {
-                content-visibility: auto;
-            }
-            .card-shadow {
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            }
-            .breath-animation {
-                animation: breathe 4s infinite ease-in-out;
-            }
-            @keyframes breathe {
-                0%, 100% { transform: scale(1); }
-                50% { transform: scale(1.05); }
-            }
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Anger Rescue — 情绪缓解小工具</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React + ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <style>
+    /* Simple shred animation */
+    @keyframes shred {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      70% { transform: translateY(20px) rotate(8deg); opacity: 0.8; }
+      100% { transform: translateY(200px) rotate(20deg); opacity: 0; }
+    }
+    .shredding { animation: shred 0.7s ease forwards; }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen font-sans">
-    <div class="container mx-auto px-4 py-8 max-w-2xl">
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">愤怒管理工具</h1>
-            <p class="text-gray-600">通过简单的练习帮助您平静情绪</p>
-        </header>
-        
-        <div id="app" class="p-6 grid gap-4"></div>
-    </div>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-6">
+  <div id="root" class="w-full max-w-md"></div>
 
-    <script>
-        const state = {
-            mode: null,
-            breathStep: 0,
-            breathRunning: false,
-            tasks: [],
-            logs: [],
-            breathSteps: [
-                { label: "吸气", duration: 4 },
-                { label: "屏息", duration: 4 },
-                { label: "呼气", duration: 4 },
-                { label: "停留", duration: 4 }
-            ],
-            breathTimer: null,
-            remainingTime: 4
-        };
+  <script>
+  const e = React.createElement;
+  const { useState, useEffect, useRef } = React;
 
-        const app = document.getElementById('app');
+  function App(){
+    const [view, setView] = useState('home');
+    const [ventText, setVentText] = useState('');
+    const [shredded, setShredded] = useState(false);
+    const [countdown, setCountdown] = useState(0);
+    const [breathStep, setBreathStep] = useState(0);
+    const [microTask, setMicroTask] = useState(generateMicroTask());
+    const [mood, setMood] = useState(6);
+    const inputRef = useRef(null);
 
-        function render() {
-            app.innerHTML = '';
-            if (!state.mode) {
-                renderHomeScreen();
-            } else if (state.mode === 'breath') {
-                renderBreathScreen();
-            } else if (["task", "grounding", "reframe"].includes(state.mode)) {
-                renderTaskScreen();
-            }
-        }
+    useEffect(()=> {
+      let t;
+      if(countdown > 0){
+        t = setTimeout(()=> setCountdown(c => c - 1), 1000);
+      } else if (countdown === 0 && breathStep > 0) {
+        // auto advance to next step if user doesn't click; keep it simple: stop after one step
+      }
+      return ()=> clearTimeout(t);
+    }, [countdown, breathStep]);
 
-        function renderHomeScreen() {
-            const card = document.createElement('div');
-            card.className = 'bg-white rounded-lg p-6 card-shadow';
-            card.innerHTML = `
-                <div class="grid gap-3">
-                    <button id="breath-btn" class="bg-primary hover:bg-primary/90 text-white py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center">
-                        <i class="fa fa-heartbeat mr-2"></i> 盒式呼吸
-                    </button>
-                    <button id="task-btn" class="bg-secondary hover:bg-secondary/90 text-white py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center">
-                        <i class="fa fa-list mr-2"></i> 微任务
-                    </button>
-                    <button id="grounding-btn" class="bg-accent hover:bg-accent/90 text-white py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center">
-                        <i class="fa fa-map-marker mr-2"></i> 5-4-3-2-1地面法
-                    </button>
-                    <button id="reframe-btn" class="bg-neutral hover:bg-neutral/90 text-white py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center">
-                        <i class="fa fa-refresh mr-2"></i> 快速换个角度
-                    </button>
-                </div>`;
-            app.appendChild(card);
+    function generateMicroTask(){
+      const tasks = [
+        '站起来伸展 30 秒',
+        '喝一杯水',
+        '给同事发一条一行的更新',
+        '开窗透气 30 秒',
+        '整理一个文件夹里的三件事',
+        '写下今天的一件小胜利'
+      ];
+      return tasks[Math.floor(Math.random()*tasks.length)];
+    }
 
-            document.getElementById('breath-btn').addEventListener('click', () => {
-                state.mode = 'breath';
-                state.breathRunning = true;
-                state.breathStep = 0;
-                state.remainingTime = state.breathSteps[0].duration;
-                startBreathCycle();
-                render();
-            });
+    function startBoxBreathing(){
+      setBreathStep(1);
+      setCountdown(4);
+      setView('breath');
+    }
 
-            document.getElementById('task-btn').addEventListener('click', () => {
-                state.mode = 'task';
-                addTask('示例微任务');
-                render();
-            });
+    function nextBreathStep(){
+      if(breathStep >= 4){
+        setBreathStep(0);
+        setCountdown(0);
+        setView('home');
+      } else {
+        setBreathStep(s => s + 1);
+        setCountdown(4);
+      }
+    }
 
-            document.getElementById('grounding-btn').addEventListener('click', () => {
-                state.mode = 'grounding';
-                addTask('5-4-3-2-1 地面法');
-                addTask('看到的5样东西');
-                addTask('触摸到的4样东西');
-                addTask('听到的3样声音');
-                addTask('闻到的2种气味');
-                addTask('尝到的1种味道');
-                render();
-            });
+    function shredVent(){
+      setShredded(true);
+      setTimeout(()=>{
+        setVentText('');
+        setShredded(false);
+        setView('home');
+      }, 700);
+    }
 
-            document.getElementById('reframe-btn').addEventListener('click', () => {
-                state.mode = 'reframe';
-                addTask('快速换个角度');
-                addTask('当前情况的事实是什么？');
-                addTask('我有什么想法和感受？');
-                addTask('还有其他可能的解释吗？');
-                addTask('我能采取什么积极行动？');
-                render();
-            });
-        }
+    function quickReframe(){
+      const suggestions = [
+        '把这件事当作信息：它提示了哪些边界需要明确。写下一个可以立刻做的小边界。',
+        '你的情绪说明你在乎这件事。挑一个可执行的小点去试试，而不是想全盘改变。',
+        '先把能控制的拆出来：第一件能做的事是______。',
+        '把这股能量转为一个 5 分钟的行动，用行动消耗掉紧张感。'
+      ];
+      return suggestions[Math.floor(Math.random()*suggestions.length)];
+    }
 
-        function renderBreathScreen() {
-            const step = state.breathSteps[state.breathStep];
-            const card = document.createElement('div');
-            card.className = 'bg-white rounded-lg p-6 card-shadow text-center';
-            card.innerHTML = `
-                <div class="mb-6">
-                    <div class="inline-flex items-center justify-center w-40 h-40 rounded-full bg-primary/10 mb-4 breath-animation">
-                        <span class="text-2xl font-bold text-primary">${step.label}</span>
-                    </div>
-                    <p class="text-gray-600">剩余 ${state.remainingTime} 秒</p>
-                </div>
-                <div class="flex justify-center gap-3">
-                    ${state.breathRunning ? 
-                        `<button id="pause-breath" class="bg-neutral hover:bg-neutral/90 text-white py-2 px-4 rounded-lg transition-all duration-200">
-                            <i class="fa fa-pause mr-1"></i> 暂停
-                        </button>` : 
-                        `<button id="resume-breath" class="bg-secondary hover:bg-secondary/90 text-white py-2 px-4 rounded-lg transition-all duration-200">
-                            <i class="fa fa-play mr-1"></i> 继续
-                        </button>`
-                    }
-                    <button id="end-breath" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-all duration-200">
-                        <i class="fa fa-times mr-1"></i> 结束
-                    </button>
-                </div>`;
-            app.appendChild(card);
+    return e('div', {className:'bg-white/95 backdrop-blur-sm rounded-2xl shadow p-4 ring-1 ring-slate-200'},
+      e('div', {className:'flex items-center justify-between'},
+        e('h3', {className:'text-lg font-semibold'}, 'Anger Rescue'),
+        e('div', {className:'text-sm text-slate-500'}, '微交互 · 减压')
+      ),
+      e('div', {className:'mt-3'},
+        view === 'home' && e('div', null,
+          e('p', {className:'text-sm text-slate-600'}, '感觉生气了？点一个小动作，让情绪先动起来而不是卡住。'),
+          e('div', {className:'grid grid-cols-2 gap-2 mt-4'},
+            e('button', {onClick: ()=>{ setView('vent'); setTimeout(()=> inputRef.current?.focus(), 60) }, className:'p-2 rounded-lg border text-sm'}, '写下来并碎纸'),
+            e('button', {onClick: startBoxBreathing, className:'p-2 rounded-lg border text-sm'}, '盒式呼吸 1 轮'),
+            e('button', {onClick: ()=> setView('ground'), className:'p-2 rounded-lg border text-sm'}, '5-4-3 地面法'),
+            e('button', {onClick: ()=>{ setMicroTask(generateMicroTask()); setView('task') }, className:'p-2 rounded-lg border text-sm'}, '完成一个微任务'),
+            e('button', {onClick: ()=> setView('reframe'), className:'col-span-2 p-2 rounded-lg border text-sm'}, '快速换个角度（AI 风格建议）')
+          ),
+          e('div', {className:'mt-4 flex items-center justify-between'},
+            e('div', {className:'text-xs text-slate-500'}, '情绪刻度'),
+            e('input', {type:'range', min:0, max:10, value:mood, onChange: (e)=> setMood(Number(e.target.value))})
+          )
+        ),
 
-            if (state.breathRunning) {
-                document.getElementById('pause-breath').addEventListener('click', () => {
-                    state.breathRunning = false;
-                    clearInterval(state.breathTimer);
-                    render();
-                });
-            } else {
-                document.getElementById('resume-breath').addEventListener('click', () => {
-                    state.breathRunning = true;
-                    startBreathCycle();
-                    render();
-                });
-            }
+        view === 'vent' && e('div', null,
+          e('textarea', {ref: inputRef, value: ventText, onChange: (e)=> setVentText(e.target.value), rows:5, className:'w-full rounded-md border p-2 text-sm', placeholder:'把气写下来：不需要有逻辑，只要真实'}),
+          e('div', {className:'flex gap-2 mt-2'},
+            e('button', {onClick: shredVent, disabled: !ventText, className:'flex-1 p-2 rounded-md bg-red-50 border text-sm'}, '撕碎并清空'),
+            e('button', {onClick: ()=>{ navigator.clipboard?.writeText(ventText); setView('home') }, className:'p-2 rounded-md border text-sm'}, '复制')
+          ),
+          shredded && e('div', {className:'mt-2 p-2 bg-yellow-50 rounded shredding'}, '🗑️ 已撕碎 —— 呼吸一下'),
+          e('div', {className:'mt-3 text-right'},
+            e('button', {onClick: ()=> setView('home'), className:'text-sm text-slate-500'}, '返回')
+          )
+        ),
 
-            document.getElementById('end-breath').addEventListener('click', () => {
-                state.mode = null;
-                state.breathRunning = false;
-                clearInterval(state.breathTimer);
-                render();
-            });
-        }
+        view === 'breath' && e('div', {className:'flex flex-col items-center py-4'},
+          e('div', {className:'text-sm text-slate-600 mb-2'}, '盒式呼吸 — 当前步骤: ' + (breathStep === 1 ? '吸气' : breathStep === 2 ? '屏住' : breathStep === 3 ? '呼气' : breathStep === 4 ? '屏住' : '')),
+          e('div', {className:'w-36 h-36 rounded-full grid place-items-center border'},
+            e('div', {className:'text-2xl font-semibold'}, countdown > 0 ? countdown : '—')
+          ),
+          e('div', {className:'mt-3 flex gap-2'},
+            e('button', {onClick: nextBreathStep, className:'p-2 rounded-md border text-sm'}, '下一步'),
+            e('button', {onClick: ()=>{ setView('home'); setBreathStep(0); setCountdown(0) }, className:'p-2 rounded-md text-sm'}, '结束')
+          ),
+          e('div', {className:'mt-3 text-xs text-slate-500'}, '提示：吸 4s → 屏 4s → 呼 4s → 屏 4s. 做 1 轮即可明显平稳心率。')
+        ),
 
-        function renderTaskScreen() {
-            const card = document.createElement('div');
-            card.className = 'bg-white rounded-lg p-6 card-shadow';
-            let tasksHTML = '';
-            state.tasks.forEach((task, index) => {
-                tasksHTML += `
-                    <div class="border border-gray-200 p-4 rounded-xl mb-4">
-                        <div class="font-semibold text-gray-800 mb-2">${task.name}</div>
-                        <textarea id="task-${index}-answer" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" placeholder="写下你的答案..." rows="3">${task.answer || ''}</textarea>
-                        <div class="mt-3 flex items-center">
-                            <input type="checkbox" id="task-${index}-done" class="mr-2 h-4 w-4 text-primary" ${task.done ? 'checked' : ''} />
-                            <label for="task-${index}-done" class="text-gray-600">已完成</label>
-                        </div>
-                    </div>`;
-            });
-            card.innerHTML = `
-                <div class="grid gap-4">
-                    ${tasksHTML}
-                    <div class="flex flex-wrap gap-3 mt-2">
-                        <button id="add-task" class="bg-secondary hover:bg-secondary/90 text-white py-2 px-4 rounded-lg transition-all duration-200 flex items-center">
-                            <i class="fa fa-plus mr-1"></i> 添加任务
-                        </button>
-                        <button id="export-logs" class="bg-accent hover:bg-accent/90 text-white py-2 px-4 rounded-lg transition-all duration-200 flex items-center">
-                            <i class="fa fa-download mr-1"></i> 导出记录
-                        </button>
-                        <button id="end-task" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-all duration-200 flex items-center">
-                            <i class="fa fa-times mr-1"></i> 结束
-                        </button>
-                    </div>
-                </div>`;
-            app.appendChild(card);
+        view === 'ground' && e('div', null,
+          e('ol', {className:'list-decimal ml-5 text-sm space-y-2 text-slate-700'},
+            e('li', null, '看见并说出 5 样你能看到的东西'),
+            e('li', null, '听见并说出 4 样你能听到的声音'),
+            e('li', null, '触摸并说出 3 样你能碰到的东西'),
+            e('li', null, '闻到并说出 2 样气味（如果没有就想象）'),
+            e('li', null, '尝试说出 1 样你现在能感受到的味道或口腔感受')
+          ),
+          e('div', {className:'mt-3 flex justify-between'},
+            e('button', {onClick: ()=> setView('home'), className:'p-2 rounded-md border text-sm'}, '完成'),
+            e('button', {onClick: ()=>{ setView('task'); setMicroTask(generateMicroTask()) }, className:'p-2 rounded-md text-sm'}, '跳到微任务')
+          )
+        ),
 
-            document.getElementById('add-task').addEventListener('click', () => {
-                addTask('新的任务');
-                render();
-            });
-            document.getElementById('export-logs').addEventListener('click', exportLogs);
-            document.getElementById('end-task').addEventListener('click', () => {
-                state.mode = null;
-                state.tasks = [];
-                render();
-            });
+        view === 'task' && e('div', null,
+          e('div', {className:'text-sm text-slate-700'}, '微任务（建议 1–5 分钟）'),
+          e('div', {className:'mt-2 p-3 rounded-md bg-gray-50 text-sm'}, microTask),
+          e('div', {className:'mt-3 flex gap-2'},
+            e('button', {onClick: ()=> setView('home'), className:'flex-1 p-2 rounded-md border text-sm'}, '我做完了'),
+            e('button', {onClick: ()=> setMicroTask(generateMicroTask()), className:'p-2 rounded-md text-sm'}, '换一个')
+          )
+        ),
 
-            state.tasks.forEach((task, index) => {
-                document.getElementById(`task-${index}-answer`).addEventListener('input', (e) => {
-                    updateTask(index, 'answer', e.target.value);
-                });
-                document.getElementById(`task-${index}-done`).addEventListener('change', (e) => {
-                    updateTask(index, 'done', e.target.checked);
-                });
-            });
-        }
+        view === 'reframe' && e('div', null,
+          e('div', {className:'text-sm text-slate-700'}, '快速建议（本地生成，安全、无保存）'),
+          e('div', {className:'mt-2 p-3 rounded-md bg-blue-50 text-sm'}, quickReframe()),
+          e('div', {className:'mt-3 flex gap-2'},
+            e('button', {onClick: ()=> setView('home'), className:'flex-1 p-2 rounded-md border text-sm'}, '好 我回去试试'),
+            e('button', {onClick: ()=> alert('如果你想接入在线AI以获得个性化建议，我可以给你后端示例和安全说明。') , className:'p-2 rounded-md text-sm'}, '需要更多建议')
+          )
+        )
+      ),
+      e('div', {className:'mt-4 text-xs text-slate-400'}, '注：此工具为情绪缓解辅助，不替代专业心理咨询。如长期情绪困扰请寻求专业帮助。')
+    );
+  }
 
-        function startBreathCycle() {
-            clearInterval(state.breathTimer);
-            if (state.breathRunning) {
-                state.remainingTime = state.breathSteps[state.breathStep].duration;
-                state.breathTimer = setInterval(() => {
-                    state.remainingTime--;
-                    if (state.remainingTime < 0) {
-                        state.breathStep = (state.breathStep + 1) % state.breathSteps.length;
-                        state.remainingTime = state.breathSteps[state.breathStep].duration;
-                    }
-                    render();
-                }, 1000);
-            }
-        }
-
-        function addTask(name) {
-            state.tasks.push({ name, answer: '', done: false });
-        }
-
-        function updateTask(index, field, value) {
-            if (state.tasks[index]) {
-                state.tasks[index][field] = value;
-            }
-        }
-
-        function exportLogs() {
-            const exportData = state.tasks.map(task => {
-                const entry = { name: task.name, status: task.done ? "已完成" : "未完成" };
-                if (task.answer && task.answer.trim()) {
-                    entry.answer = task.answer;
-                }
-                return entry;
-            });
-            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "anger_rescue_log.json";
-            a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 100);
-        }
-
-        render();
-    </script>
+  ReactDOM.createRoot(document.getElementById('root')).render(e(App));
+  </script>
 </body>
 </html>
