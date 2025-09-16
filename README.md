@@ -27,26 +27,6 @@
 
 ---
 
-## 部署方式
-
-### GitHub Pages
-1. 将 `index.html` 上传到仓库根目录。
-2. 进入 **Settings > Pages**，选择 `Deploy from branch`。
-3. 分支选 `main`，目录选 `/ (root)`。
-4. 保存后，访问 `https://你的用户名.github.io/anger-rescue-widget/` 即可。
-
-### Vercel（推荐未来接入 AI）
-1. 登录 [Vercel](https://vercel.com/)。
-2. New Project → 导入 GitHub 仓库 → 自动部署。
-3. 获得 `.vercel.app` 的分享链接。
-
-### Netlify（快速上传单页）
-1. 登录 [Netlify](https://www.netlify.com/)。
-2. Add new site → Deploy manually → 上传 `index.html`。
-3. 立即生成 `.netlify.app` 链接。
-
----
-
 ## 后续计划
 - 接入 **豆包 / OpenAI API**，在“快速换个角度”中提供更智能的情绪建议。  
 - 增加个性化配置（如呼吸节奏时长、主题样式切换）。  
