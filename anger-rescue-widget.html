@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>愤怒管理工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#10b981',
+                        accent: '#f59e0b',
+                        neutral: '#64748b',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+            .breath-animation {
+                animation: breathe 4s infinite ease-in-out;
+            }
+            @keyframes breathe {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-2xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">愤怒管理工具</h1>
+            <p class="text-gray-600">通过简单的练习帮助您平静情绪</p>
+        </header>
+        
+        <div id="app" class="p-6 grid gap-4">
+            <!-- 主界面将通过JavaScript动态生成 -->
+        </div>
+    </div>
+
+    <script>
+        // 状态管理
+        const state = {
+            mode: null,
+            breathStep: 0,
+            breathRunning: false,
+            tasks: [],
+            logs: [],
+            breathSteps: [
+                { label: "吸气", duration: 4 },
+                { label: "屏息", duration: 4 },
+                { label: "呼气", duration: 4 },
+                { label: "停留", duration: 4 }
+            ],
+            breathTimer: null
+        };
+
+        // DOM元素
+        const app = document.getElementById('app');
+
+        // 渲染函数
+        function render() {
+            app.innerHTML = '';
+            
+            if (!state.mode) {
+                renderHomeScreen();
+            } else if (state.mode === 'breath') {
+                renderBreathScreen();
+            } else if (['task', 'grounding', 'reframe'].includes(state.mode)) {
+                renderTaskScreen();
+            }
+        }
+
+        // 渲染主屏幕
+        function renderHomeScreen() {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-lg p-6 card-shadow';
+            
+            card.innerHTML = `
+                <div class="grid gap-3">
+                    <button id="breath-btn" class="bg-primary hover:bg-primary/90 text-white py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center">
+                        <i class="fa fa-heartbeat mr-2"></i> 盒式呼吸
+                    </button>
+                    <button id="task-btn" class="bg-secondary hover:bg-secondary/90 text-white py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center">
+                        <i class="fa fa-list mr-2"></i> 微任务
+                    </button>
+                    <button id="grounding-btn" class="bg-accent hover:bg-accent/90 text-white py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center">
+                        <i class="fa fa-map-marker mr-2"></i> 5-4-3-2-1地面法
+                    </button>
+                    <button id="reframe-btn" class="bg-neutral hover:bg-neutral/90 text-white py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center">
+                        <i class="fa fa-refresh mr-2"></i> 快速换个角度
+                    </button>
+                </div>
+            `;
+            
+            app.appendChild(card);
+            
+            // 添加事件监听
+            document.getElementById('breath-btn').addEventListener('click', () => {
+                state.mode = 'breath';
+                state.breathRunning = true;
+                startBreathCycle();
+                render();
+            });
+            
+            document.getElementById('task-btn').addEventListener('click', () => {
+                state.mode = 'task';
+                addTask('示例微任务');
+                render();
+            });
+            
+            document.getElementById('grounding-btn').addEventListener('click', () => {
+                state.mode = 'grounding';
+                addTask('5-4-3-2-1 地面法');
+                addTask('看到的5样东西');
+                addTask('触摸到的4样东西');
+                addTask('听到的3样声音');
+                addTask('闻到的2种气味');
+                addTask('尝到的1种味道');
+                render();
+            });
+            
+            document.getElementById('reframe-btn').addEventListener('click', () => {
+                state.mode = 'reframe';
+                addTask('快速换个角度');
+                addTask('当前情况的事实是什么？');
+                addTask('我有什么想法和感受？');
+                addTask('还有其他可能的解释吗？');
+                addTask('我能采取什么积极行动？');
+                render();
+            });
+        }
+
+        // 渲染呼吸练习屏幕
+        function renderBreathScreen() {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-lg p-6 card-shadow text-center';
+            
+            card.innerHTML = `
+                <div class="mb-6">
+                    <div class="inline-flex items-center justify-center w-40 h-40 rounded-full bg-primary/10 mb-4 breath-animation">
+                        <span class="text-2xl font-bold text-primary">${state.breathSteps[state.breathStep].label}</span>
+                    </div>
+                    <p class="text-gray-600">剩余 ${state.breathSteps[state.breathStep].duration} 秒</p>
+                </div>
+                
+                <div class="flex justify-center gap-3">
+                    ${state.breathRunning ? 
+                        `<button id="pause-breath" class="bg-neutral hover:bg-neutral/90 text-white py-2 px-4 rounded-lg transition-all duration-200">
+                            <i class="fa fa-pause mr-1"></i> 暂停
+                        </button>` : 
+                        `<button id="resume-breath" class="bg-secondary hover:bg-secondary/90 text-white py-2 px-4 rounded-lg transition-all duration-200">
+                            <i class="fa fa-play mr-1"></i> 继续
+                        </button>`
+                    }
+                    <button id="end-breath" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-all duration-200">
+                        <i class="fa fa-times mr-1"></i> 结束
+                    </button>
+                </div>
+            `;
+            
+            app.appendChild(card);
+            
+            // 添加事件监听
+            if (state.breathRunning) {
+                document.getElementById('pause-breath').addEventListener('click', () => {
+                    state.breathRunning = false;
+                    clearTimeout(state.breathTimer);
+                    render();
+                });
+            } else {
+                document.getElementById('resume-breath').addEventListener('click', () => {
+                    state.breathRunning = true;
+                    startBreathCycle();
+                    render();
+                });
+            }
+            
+            document.getElementById('end-breath').addEventListener('click', () => {
+                state.mode = null;
+                state.breathRunning = false;
+                clearTimeout(state.breathTimer);
+                render();
+            });
+        }
+
+        // 渲染任务屏幕
+        function renderTaskScreen() {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-lg p-6 card-shadow';
+            
+            let tasksHTML = '';
+            state.tasks.forEach((task, index) => {
+                tasksHTML += `
+                    <div class="border border-gray-200 p-4 rounded-xl mb-4">
+                        <div class="font-semibold text-gray-800 mb-2">${task.name}</div>
+                        <textarea 
+                            id="task-${index}-answer" 
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                            placeholder="写下你的答案..."
+                            rows="3"
+                        >${task.answer || ''}</textarea>
+                        <div class="mt-3 flex items-center">
+                            <input 
+                                type="checkbox" 
+                                id="task-${index}-done" 
+                                class="mr-2 h-4 w-4 text-primary"
+                                ${task.done ? 'checked' : ''}
+                            />
+                            <label for="task-${index}-done" class="text-gray-600">已完成</label>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            card.innerHTML = `
+                <div class="grid gap-4">
+                    ${tasksHTML}
+                    
+                    <div class="flex flex-wrap gap-3 mt-2">
+                        <button id="add-task" class="bg-secondary hover:bg-secondary/90 text-white py-2 px-4 rounded-lg transition-all duration-200 flex items-center">
+                            <i class="fa fa-plus mr-1"></i> 添加任务
+                        </button>
+                        <button id="export-logs" class="bg-accent hover:bg-accent/90 text-white py-2 px-4 rounded-lg transition-all duration-200 flex items-center">
+                            <i class="fa fa-download mr-1"></i> 导出记录
+                        </button>
+                        <button id="end-task" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-all duration-200 flex items-center">
+                            <i class="fa fa-times mr-1"></i> 结束
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            app.appendChild(card);
+            
+            // 添加事件监听
+            document.getElementById('add-task').addEventListener('click', () => {
+                addTask('新的任务');
+                render();
+            });
+            
+            document.getElementById('export-logs').addEventListener('click', exportLogs);
+            
+            document.getElementById('end-task').addEventListener('click', () => {
+                state.mode = null;
+                state.tasks = [];
+                render();
+            });
+            
+            // 为每个任务添加事件监听
+            state.tasks.forEach((task, index) => {
+                document.getElementById(`task-${index}-answer`).addEventListener('input', (e) => {
+                    updateTask(index, 'answer', e.target.value);
+                });
+                
+                document.getElementById(`task-${index}-done`).addEventListener('change', (e) => {
+                    updateTask(index, 'done', e.target.checked);
+                });
+            });
+        }
+
+        // 呼吸周期函数
+        function startBreathCycle() {
+            clearTimeout(state.breathTimer);
+            
+            if (state.breathRunning) {
+                state.breathTimer = setTimeout(() => {
+                    state.breathStep = (state.breathStep + 1) % state.breathSteps.length;
+                    render();
+                    startBreathCycle();
+                }, state.breathSteps[state.breathStep].duration * 1000);
+            }
+        }
+
+        // 添加任务
+        function addTask(name) {
+            state.tasks.push({ name, answer: '', done: false });
+        }
+
+        // 更新任务
+        function updateTask(index, field, value) {
+            if (state.tasks[index]) {
+                state.tasks[index][field] = value;
+            }
+        }
+
+        // 导出日志
+        function exportLogs() {
+            const exportData = state.tasks.map(task => ({
+                name: task.name,
+                status: task.done ? "已完成" : "未完成",
+                answer: task.answer || undefined
+            }));
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+                type: "application/json"
+            });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "anger_rescue_log.json";
+            a.click();
+            
+            // 释放URL对象
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+
+        // 初始化应用
+        render();
+    </script>
+</body>
+</html>
