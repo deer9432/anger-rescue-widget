@@ -1,0 +1,58 @@
+# Anger Rescue Widget 😤✨
+
+一个轻量级的情绪缓解小工具，帮助你在工作或生活中遇到杂乱烦躁时，快速调节状态。  
+支持网页端使用，无需下载任何 App。  
+
+👉 [在线体验](https://你的用户名.github.io/anger-rescue-widget/) （请替换为你自己的 GitHub Pages 链接）
+
+---
+
+## 功能介绍
+
+### 🌬️ 盒式呼吸
+- 自动循环 **吸气 - 屏息 - 呼气 - 停留**，每步 4 秒。
+- 支持【暂停】【结束】按钮，帮助用户放松神经系统。
+
+### ✅ 微任务
+- 用户可以添加待办小任务，并写下完成情况。
+- 导出功能：可生成 JSON 文件，记录任务名称、完成状态和填写的答案。
+
+### 🖐️ 5-4-3-2-1 地面法
+- 逐步关注 **看到 / 听到 / 感受到** 的事物，帮助缓解焦虑。
+- 提供填写区域，支持导出记录。
+
+### 🔄 快速换个角度
+- 引导用户尝试不同角度看待当前情绪。
+- 留出填写空间，可在未来接入 AI（如豆包、OpenAI）。
+
+---
+
+## 部署方式
+
+### GitHub Pages
+1. 将 `index.html` 上传到仓库根目录。
+2. 进入 **Settings > Pages**，选择 `Deploy from branch`。
+3. 分支选 `main`，目录选 `/ (root)`。
+4. 保存后，访问 `https://你的用户名.github.io/anger-rescue-widget/` 即可。
+
+### Vercel（推荐未来接入 AI）
+1. 登录 [Vercel](https://vercel.com/)。
+2. New Project → 导入 GitHub 仓库 → 自动部署。
+3. 获得 `.vercel.app` 的分享链接。
+
+### Netlify（快速上传单页）
+1. 登录 [Netlify](https://www.netlify.com/)。
+2. Add new site → Deploy manually → 上传 `index.html`。
+3. 立即生成 `.netlify.app` 链接。
+
+---
+
+## 后续计划
+- 接入 **豆包 / OpenAI API**，在“快速换个角度”中提供更智能的情绪建议。  
+- 增加个性化配置（如呼吸节奏时长、主题样式切换）。  
+- 增加本地存储功能，自动保存用户输入。
+
+---
+
+## License
+MIT License. 欢迎自由使用和二次开发。
