@@ -3,7 +3,7 @@
 一个轻量级的情绪缓解小工具，帮助你在工作或生活中遇到杂乱烦躁时，快速调节状态。  
 支持网页端使用，无需下载任何 App。  
 
-👉 [在线体验](https://你的用户名.github.io/anger-rescue-widget/) （请替换为你自己的 GitHub Pages 链接）
+👉 [在线体验](https://deer9432.github.io/anger-rescue-widget/) 
 
 ---
 
